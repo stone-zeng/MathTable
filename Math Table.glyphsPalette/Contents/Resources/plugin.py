@@ -12,6 +12,7 @@
 ###########################################################################################################
 
 import objc
+import traceback
 from GlyphsApp import *
 from GlyphsApp.plugins import *
 from vanilla import *
@@ -30,8 +31,8 @@ class MathTable(PalettePlugin):
 		italicCorrection.label  = TextBox('auto', 'Italic Correction', sizeStyle='small')
 		topAccentPosition.label = TextBox('auto', 'Top Accent Position', sizeStyle='small')
 		extendedShape.label     = TextBox('auto', 'Extended Shape', sizeStyle='small')
-		italicCorrection.text   = EditText('auto', placeholder='0', sizeStyle='small')
-		topAccentPosition.text  = EditText('auto', placeholder='0', sizeStyle='small')
+		italicCorrection.text   = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.italicCorrectionCallback)
+		topAccentPosition.text  = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.topAccentCallback)
 		extendedShape.checkBox  = CheckBox('auto', title='', sizeStyle='small')
 
 		rules = lambda t: [
@@ -53,9 +54,9 @@ class MathTable(PalettePlugin):
 		self.paletteView.group.extendedShape = extendedShape
 		self.paletteView.group.addAutoPosSizeRules([
 			# Horizontal
-			'H:|-10-[italicCorrection]|',
-			'H:|-10-[topAccentPosition]|',
-			'H:|-10-[extendedShape]|',
+			'H:|-10-[italicCorrection]-|',
+			'H:|-10-[topAccentPosition]-|',
+			'H:|-10-[extendedShape]-|',
 			# Vertical
 			'V:|-2-[italicCorrection][topAccentPosition][extendedShape]|',
 		])
@@ -72,38 +73,61 @@ class MathTable(PalettePlugin):
 	def __del__(self):
 		Glyphs.removeCallback(self.update)
 		Glyphs.removeCallback(self.draw)
+		Glyphs.removeCallback(self.italicCorrectionCallback)
+		Glyphs.removeCallback(self.topAccentCallback)
 
 	@objc.python_method
 	def update(self, sender):
-		pass
-		# TODO:
-		# font = sender.object().parent
-		# if font:
-		# 	if font.currentTab:
-		# 		# In the Edit View
-		# 		print('In the Edit View')
-		# 	else:
-		# 		print(font.selection)
+		if font := sender.object().parent:
+			topAccentEditText = self.paletteView.group.topAccentPosition.text
+			if layers := font.selectedLayers:
+				topAccentList = []
+				for layer in layers:
+					mathTable = layer.userData['math']
+					if mathTable and 'topAccent' in mathTable:
+						topAccentList.append(mathTable['topAccent'])
+					else:
+						topAccentList.append('Empty')
+				if len(set(topAccentList)) == 1:
+					if topAccentList[0] == 'Empty':
+						topAccentEditText.set('')
+						topAccentEditText.setPlaceholder('Empty')
+					else:
+						topAccentEditText.set(str(topAccentList[0]))
+				else:
+					topAccentEditText.set('')
+					topAccentEditText.setPlaceholder('Multiple Values')
+			else:
+				topAccentEditText.set('')
+				topAccentEditText.setPlaceholder('No Selection')
 
 	@objc.python_method
 	def draw(self, layer, info):
-		# Due to internal Glyphs.app structure, we need to catch and print exceptions
-		# of these callback functions with try/except like so:
 		try:
 			self.drawTopAccentPosition(layer)
-		# Error. Print exception.
 		except:
-			import traceback
 			print(traceback.format_exc())
 
 	@objc.python_method
+	def italicCorrectionCallback(self, sender):
+		# TODO:
+		pass
+
+	@objc.python_method
+	def topAccentCallback(self, sender):
+		val = toInt(sender.get())
+		if layers := Glyphs.font.selectedLayers:
+			for layer in layers:
+				mathTableInsert(layer, 'topAccent', val)
+
+	@objc.python_method
 	def getScale(self):
+		'''Return the current scale factor of the Edit View UI.'''
 		return Glyphs.font.currentTab.scale
 
 	@objc.python_method
 	def getViewInfo(self):
-		'''Return the origin and size of the visible area of the Edit view.
-		'''
+		'''Return the origin and size of the visible area of the Edit view.'''
 		scale = self.getScale()
 		view = Glyphs.font.currentTab.graphicView()
 		visibleRect = view.visibleRect()
@@ -125,27 +149,41 @@ class MathTable(PalettePlugin):
 
 	@objc.python_method
 	def drawTopAccentPosition(self, layer):
-		if layer.userData:
-			if 'math' in layer.userData:
-				if 'topAccent' in layer.userData['math']:
-					topAccent = layer.userData['math']['topAccent']
-					((_, y), (_, viewHeight)) = self.getViewInfo()
-					scale = self.getScale()
+		if mathTable := layer.userData['math']:
+			if 'topAccent' in mathTable:
+				topAccent = mathTable['topAccent']
+				scale = self.getScale()
+				((_, y), (_, viewHeight)) = self.getViewInfo()
 
-					color = NSColor.systemGreenColor()
-					color.set()
+				color = NSColor.systemGreenColor()
+				color.set()
 
-					path = NSBezierPath.bezierPath()
-					path.moveToPoint_((topAccent, y))
-					path.lineToPoint_((topAccent, y + viewHeight))
-					path.setLineWidth_(1 / scale)
-					path.stroke()
+				path = NSBezierPath.bezierPath()
+				path.moveToPoint_((topAccent, y))
+				path.lineToPoint_((topAccent, y + viewHeight))
+				path.setLineWidth_(1 / scale)
+				path.stroke()
 
-					textPos = (topAccent + 4, y + viewHeight - 75 / scale)
-					print(textPos)
-					self.drawTextAtPoint('MATH: Top Accent', textPos, size=11, color=color)
+				textPos = (topAccent + 4, y + viewHeight - 75 / scale)
+				self.drawTextAtPoint('MATH: Top Accent', textPos, size=11, color=color)
 
 	@objc.python_method
 	def __file__(self):
-		"""Please leave this method unchanged"""
 		return __file__
+
+def mathTableInsert(layer, key, val):
+	'''Insert key-value pair into MATH table of `layer`.'''
+	if mathTable := layer.userData['math']:
+		mathTable[key] = val
+	else:
+		layer.userData['math'] = {key: val}
+
+def toInt(s: str):
+	'''Safely convert a string to integer.'''
+	try:
+		return int(s)
+	except ValueError:
+		try:
+			return round(float(s))
+		except ValueError:
+			return 0
