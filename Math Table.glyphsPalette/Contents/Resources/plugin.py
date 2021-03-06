@@ -79,27 +79,32 @@ class MathTable(PalettePlugin):
 	@objc.python_method
 	def update(self, sender):
 		if font := sender.object().parent:
-			topAccentEditText = self.paletteView.group.topAccentPosition.text
-			if layers := font.selectedLayers:
-				topAccentList = []
-				for layer in layers:
-					mathTable = layer.userData['math']
-					if mathTable and 'topAccent' in mathTable:
-						topAccentList.append(mathTable['topAccent'])
-					else:
-						topAccentList.append('Empty')
-				if len(set(topAccentList)) == 1:
-					if topAccentList[0] == 'Empty':
-						topAccentEditText.set('')
-						topAccentEditText.setPlaceholder('Empty')
-					else:
-						topAccentEditText.set(str(topAccentList[0]))
+			layers = font.selectedLayers
+			self._updateHelper(layers, self.paletteView.group.italicCorrection.text, 'italicCorrection')
+			self._updateHelper(layers, self.paletteView.group.topAccentPosition.text, 'topAccent')
+
+	@objc.python_method
+	def _updateHelper(self, layers, text, entry):
+		if layers:
+			valueList = []
+			for layer in layers:
+				mathTable = layer.userData['math']
+				if mathTable and entry in mathTable:
+					valueList.append(mathTable[entry])
 				else:
-					topAccentEditText.set('')
-					topAccentEditText.setPlaceholder('Multiple Values')
+					valueList.append('Empty')
+			if len(set(valueList)) == 1:
+				if valueList[0] == 'Empty':
+					text.set('')
+					text.setPlaceholder('Empty')
+				else:
+					text.set(str(valueList[0]))
 			else:
-				topAccentEditText.set('')
-				topAccentEditText.setPlaceholder('No Selection')
+				text.set('')
+				text.setPlaceholder('Multiple Values')
+		else:
+			text.set('')
+			text.setPlaceholder('No Selection')
 
 	@objc.python_method
 	def draw(self, layer, info):
@@ -110,15 +115,27 @@ class MathTable(PalettePlugin):
 
 	@objc.python_method
 	def italicCorrectionCallback(self, sender):
-		# TODO:
-		pass
+		if sender.get() == '':
+			if layers := Glyphs.font.selectedLayers:
+				for layer in layers:
+					mathTableDelete(layer, 'italicCorrection')
+		else:
+			val = toInt(sender.get())
+			if layers := Glyphs.font.selectedLayers:
+				for layer in layers:
+					mathTableInsert(layer, 'italicCorrection', val)
 
 	@objc.python_method
 	def topAccentCallback(self, sender):
-		val = toInt(sender.get())
-		if layers := Glyphs.font.selectedLayers:
-			for layer in layers:
-				mathTableInsert(layer, 'topAccent', val)
+		if sender.get() == '':
+			if layers := Glyphs.font.selectedLayers:
+				for layer in layers:
+					mathTableDelete(layer, 'topAccent')
+		else:
+			val = toInt(sender.get())
+			if layers := Glyphs.font.selectedLayers:
+				for layer in layers:
+					mathTableInsert(layer, 'topAccent', val)
 
 	@objc.python_method
 	def getScale(self):
@@ -177,6 +194,12 @@ def mathTableInsert(layer, key, val):
 		mathTable[key] = val
 	else:
 		layer.userData['math'] = {key: val}
+
+def mathTableDelete(layer, key):
+	'''Delete key in MATH table of `layer`.'''
+	if mathTable := layer.userData['math']:
+		if key in mathTable:
+			del mathTable[key]
 
 def toInt(s: str):
 	'''Safely convert a string to integer.'''
