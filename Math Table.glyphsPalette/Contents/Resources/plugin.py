@@ -109,7 +109,9 @@ class MathTable(PalettePlugin):
 	@objc.python_method
 	def draw(self, layer, info):
 		try:
-			self.drawTopAccentPosition(layer)
+			if mathTable := layer.userData['math']:
+				self.drawTopAccentPosition(layer, mathTable)
+				self.drawItalicCorrection(layer, mathTable)
 		except:
 			print(traceback.format_exc())
 
@@ -165,24 +167,46 @@ class MathTable(PalettePlugin):
 		displayText.drawAtPoint_(pos)
 
 	@objc.python_method
-	def drawTopAccentPosition(self, layer):
-		if mathTable := layer.userData['math']:
-			if 'topAccent' in mathTable:
-				topAccent = mathTable['topAccent']
-				scale = self.getScale()
-				((_, y), (_, viewHeight)) = self.getViewInfo()
+	def drawTopAccentPosition(self, layer, mathTable):
+		if 'topAccent' in mathTable:
+			topAccent = mathTable['topAccent']
+			scale = self.getScale()
+			((_, viewOriginY), (_, viewHeight)) = self.getViewInfo()
 
-				color = NSColor.systemGreenColor()
-				color.set()
+			color = NSColor.systemGreenColor()
+			color.set()
 
-				path = NSBezierPath.bezierPath()
-				path.moveToPoint_((topAccent, y))
-				path.lineToPoint_((topAccent, y + viewHeight))
-				path.setLineWidth_(1 / scale)
-				path.stroke()
+			path = NSBezierPath.bezierPath()
+			path.moveToPoint_((topAccent, viewOriginY))
+			path.lineToPoint_((topAccent, viewOriginY + viewHeight))
+			path.setLineWidth_(1 / scale)
+			path.stroke()
 
-				textPos = (topAccent + 4, y + viewHeight - 75 / scale)
-				self.drawTextAtPoint('MATH: Top Accent', textPos, size=11, color=color)
+			textPos = (topAccent + 10 / scale, viewOriginY + viewHeight - 75 / scale)
+			self.drawTextAtPoint('MATH: Top Accent', textPos, size=11, color=color)
+
+	@objc.python_method
+	def drawItalicCorrection(self, layer, mathTable):
+		if 'italicCorrection' in mathTable:
+			italicCorrection = mathTable['italicCorrection']
+			scale = self.getScale()
+			((_, viewOriginY), (_, viewHeight)) = self.getViewInfo()
+			((_, y), (_, height)) = layer.bounds
+
+			def X(Y):
+				return layer.width - italicCorrection / 2 - italicCorrection * (y - Y) / height
+
+			color = NSColor.systemBlueColor()
+			color.set()
+
+			path = NSBezierPath.bezierPath()
+			path.moveToPoint_((X(viewOriginY), viewOriginY))
+			path.lineToPoint_((X(viewOriginY + viewHeight), viewOriginY + viewHeight))
+			path.setLineWidth_(1 / scale)
+			path.stroke()
+
+			textPos = (X(viewOriginY + viewHeight), viewOriginY + viewHeight - 75 / scale)
+			self.drawTextAtPoint('MATH: Italic Correction', textPos, size=11, color=color)
 
 	@objc.python_method
 	def __file__(self):
