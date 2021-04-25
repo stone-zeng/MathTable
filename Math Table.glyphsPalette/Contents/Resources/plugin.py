@@ -28,12 +28,18 @@ class MathTable(PalettePlugin):
 		italicCorrection        = Group('auto')
 		topAccentPosition       = Group('auto')
 		extendedShape           = Group('auto')
+		startConnector          = Group('auto')
+		endConnector            = Group('auto')
 		italicCorrection.label  = TextBox('auto', 'Italic Correction', sizeStyle='small')
 		topAccentPosition.label = TextBox('auto', 'Top Accent Position', sizeStyle='small')
 		extendedShape.label     = TextBox('auto', 'Extended Shape', sizeStyle='small')
+		startConnector.label    = TextBox('auto', 'Start Connector', sizeStyle='small')
+		endConnector.label      = TextBox('auto', 'End Connector', sizeStyle='small')
 		italicCorrection.text   = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.italicCorrectionCallback)
 		topAccentPosition.text  = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.topAccentCallback)
 		extendedShape.checkBox  = CheckBox('auto', title='', sizeStyle='small')
+		startConnector.text     = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.startConnectorCallback)
+		endConnector.text       = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.endConnectorCallback)
 
 		rules = lambda t: [
 			# Horizontal
@@ -45,20 +51,26 @@ class MathTable(PalettePlugin):
 		italicCorrection.addAutoPosSizeRules(rules('text'))
 		topAccentPosition.addAutoPosSizeRules(rules('text'))
 		extendedShape.addAutoPosSizeRules(rules('checkBox'))
+		startConnector.addAutoPosSizeRules(rules('text'))
+		endConnector.addAutoPosSizeRules(rules('text'))
 
 		# Create Vanilla window and group with controls
-		self.paletteView = Window((200, 100))
-		self.paletteView.group = Group('auto')
-		self.paletteView.group.italicCorrection = italicCorrection
+		self.paletteView                         = Window((200, 100))
+		self.paletteView.group                   = Group('auto')
+		self.paletteView.group.italicCorrection  = italicCorrection
 		self.paletteView.group.topAccentPosition = topAccentPosition
-		self.paletteView.group.extendedShape = extendedShape
+		self.paletteView.group.extendedShape     = extendedShape
+		self.paletteView.group.startConnector    = startConnector
+		self.paletteView.group.endConnector      = endConnector
 		self.paletteView.group.addAutoPosSizeRules([
 			# Horizontal
 			'H:|-10-[italicCorrection]-|',
 			'H:|-10-[topAccentPosition]-|',
 			'H:|-10-[extendedShape]-|',
+			'H:|-10-[startConnector]-|',
+			'H:|-10-[endConnector]-|',
 			# Vertical
-			'V:|-2-[italicCorrection][topAccentPosition][extendedShape]|',
+			'V:|-2-[italicCorrection][topAccentPosition][extendedShape][startConnector][endConnector]|',
 		])
 
 		# Set dialog to NSView
@@ -75,6 +87,8 @@ class MathTable(PalettePlugin):
 		Glyphs.removeCallback(self.draw)
 		Glyphs.removeCallback(self.italicCorrectionCallback)
 		Glyphs.removeCallback(self.topAccentCallback)
+		Glyphs.removeCallback(self.startConnectorCallback)
+		Glyphs.removeCallback(self.endConnectorCallback)
 
 	@objc.python_method
 	def update(self, sender):
@@ -82,15 +96,17 @@ class MathTable(PalettePlugin):
 			layers = font.selectedLayers
 			self._updateHelper(layers, self.paletteView.group.italicCorrection.text, 'italicCorrection')
 			self._updateHelper(layers, self.paletteView.group.topAccentPosition.text, 'topAccent')
+			self._updateHelper(layers, self.paletteView.group.startConnector.text, 'startConnector')
+			self._updateHelper(layers, self.paletteView.group.endConnector.text, 'endConnector')
 
 	@objc.python_method
-	def _updateHelper(self, layers, text, entry):
+	def _updateHelper(self, layers, text, key):
 		if layers:
 			valueList = []
 			for layer in layers:
 				mathTable = layer.userData['math']
-				if mathTable and entry in mathTable:
-					valueList.append(mathTable[entry])
+				if mathTable and key in mathTable:
+					valueList.append(mathTable[key])
 				else:
 					valueList.append('Empty')
 			if len(set(valueList)) == 1:
@@ -117,27 +133,31 @@ class MathTable(PalettePlugin):
 
 	@objc.python_method
 	def italicCorrectionCallback(self, sender):
-		if sender.get() == '':
-			if layers := Glyphs.font.selectedLayers:
-				for layer in layers:
-					mathTableDelete(layer, 'italicCorrection')
-		else:
-			val = toInt(sender.get())
-			if layers := Glyphs.font.selectedLayers:
-				for layer in layers:
-					mathTableInsert(layer, 'italicCorrection', val)
+		self._callbackHelper(sender, 'italicCorrection')
 
 	@objc.python_method
 	def topAccentCallback(self, sender):
+		self._callbackHelper(sender, 'topAccent')
+
+	@objc.python_method
+	def startConnectorCallback(self, sender):
+		self._callbackHelper(sender, 'startConnector')
+
+	@objc.python_method
+	def endConnectorCallback(self, sender):
+		self._callbackHelper(sender, 'endConnector')
+
+	@objc.python_method
+	def _callbackHelper(self, sender, key):
 		if sender.get() == '':
 			if layers := Glyphs.font.selectedLayers:
 				for layer in layers:
-					mathTableDelete(layer, 'topAccent')
+					mathTableDelete(layer, key)
 		else:
 			val = toInt(sender.get())
 			if layers := Glyphs.font.selectedLayers:
 				for layer in layers:
-					mathTableInsert(layer, 'topAccent', val)
+					mathTableInsert(layer, key, val)
 
 	@objc.python_method
 	def getScale(self):
