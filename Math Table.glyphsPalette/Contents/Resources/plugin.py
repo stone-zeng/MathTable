@@ -27,17 +27,14 @@ class MathTable(PalettePlugin):
 		# Describe the layout of the Math panel
 		italicCorrection        = Group('auto')
 		topAccentPosition       = Group('auto')
-		extendedShape           = Group('auto')
 		startConnector          = Group('auto')
 		endConnector            = Group('auto')
 		italicCorrection.label  = TextBox('auto', 'Italic Correction', sizeStyle='small')
 		topAccentPosition.label = TextBox('auto', 'Top Accent Position', sizeStyle='small')
-		extendedShape.label     = TextBox('auto', 'Extended Shape', sizeStyle='small')
 		startConnector.label    = TextBox('auto', 'Start Connector', sizeStyle='small')
 		endConnector.label      = TextBox('auto', 'End Connector', sizeStyle='small')
 		italicCorrection.text   = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.italicCorrectionCallback)
 		topAccentPosition.text  = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.topAccentCallback)
-		extendedShape.checkBox  = CheckBox('auto', title='', sizeStyle='small')
 		startConnector.text     = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.startConnectorCallback)
 		endConnector.text       = EditText('auto', placeholder='Empty', sizeStyle='small', continuous=False, callback=self.endConnectorCallback)
 
@@ -50,7 +47,6 @@ class MathTable(PalettePlugin):
 		]
 		italicCorrection.addAutoPosSizeRules(rules('text'))
 		topAccentPosition.addAutoPosSizeRules(rules('text'))
-		extendedShape.addAutoPosSizeRules(rules('checkBox'))
 		startConnector.addAutoPosSizeRules(rules('text'))
 		endConnector.addAutoPosSizeRules(rules('text'))
 
@@ -59,18 +55,16 @@ class MathTable(PalettePlugin):
 		self.paletteView.group                   = Group('auto')
 		self.paletteView.group.italicCorrection  = italicCorrection
 		self.paletteView.group.topAccentPosition = topAccentPosition
-		self.paletteView.group.extendedShape     = extendedShape
 		self.paletteView.group.startConnector    = startConnector
 		self.paletteView.group.endConnector      = endConnector
 		self.paletteView.group.addAutoPosSizeRules([
 			# Horizontal
 			'H:|-10-[italicCorrection]-|',
 			'H:|-10-[topAccentPosition]-|',
-			'H:|-10-[extendedShape]-|',
 			'H:|-10-[startConnector]-|',
 			'H:|-10-[endConnector]-|',
 			# Vertical
-			'V:|-2-[italicCorrection][topAccentPosition][extendedShape][startConnector][endConnector]|',
+			'V:|-2-[italicCorrection][topAccentPosition][startConnector][endConnector]|',
 		])
 
 		# Set dialog to NSView
