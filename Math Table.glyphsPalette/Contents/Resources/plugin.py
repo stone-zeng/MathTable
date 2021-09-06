@@ -75,7 +75,7 @@ class MathTable(PalettePlugin):
 		Glyphs.addCallback(self.update, UPDATEINTERFACE)
 		Glyphs.addCallback(self.draw, DRAWFOREGROUND)
 
-	@objc.python_method	
+	@objc.python_method
 	def __del__(self):
 		Glyphs.removeCallback(self.update)
 		Glyphs.removeCallback(self.draw)
